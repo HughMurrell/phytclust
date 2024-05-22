@@ -1,0 +1,108 @@
+Timer unit: 1e-09 s
+
+Total time: 16.6192 s
+File: /home/ganesank/project/phytclust/phytclust/phytclust.py
+Function: __init__ at line 29
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    29                                               def __init__(self, tree, k=None, max_k=None, score_type=None, outgroup=None):
+    30         1       1510.0   1510.0      0.0          self.tree = tree
+    31         1      14907.0  14907.0      0.0          self.validate_and_set_outgroup(outgroup)
+    32         1   42162988.0    4e+07      0.3          self.num_terminals = self.calculate_num_terminals()
+    33         1  143000812.0    1e+08      0.9          validate_tree(self.tree, outgroup)
+    34         1       2145.0   2145.0      0.0          self.k = k
+    35         1        775.0    775.0      0.0          self.max_k = (
+    36         1       1364.0   1364.0      0.0              self.num_terminals if max_k is None else max_k if k is None else None
+    37                                                   )
+    38         1        793.0    793.0      0.0          self.clusters = {}
+    39         1       1722.0   1722.0      0.0          self.score_type = score_type
+    40         1        839.0    839.0      0.0          self.dp_table = {}
+    41         1        913.0    913.0      0.0          self.backtrack = {}
+    42         1       1054.0   1054.0      0.0          self.scores = []
+    43         1        698.0    698.0      0.0          self.top_peaks = []
+    44         1        949.0    949.0      0.0          self.total_runtime = 0.0
+    45         1       1068.0   1068.0      0.0          self.runtimes = {}
+    46         1  166438348.0    2e+08      1.0          self._no_outgroup_tree = deepcopy(tree) if self.outgroup else None
+    47         1        981.0    981.0      0.0          if self.outgroup:
+    48         1   48600275.0    5e+07      0.3              self.prune_outgroup()
+    49         1        2e+10    2e+10     97.6          self.tree_clust_dp_table()
+    50         1       1714.0   1714.0      0.0          self.num = []
+    51         1       3552.0   3552.0      0.0          self.den = []
+
+    Timer unit: 1e-09 s
+
+Total time: 110.145 s
+File: /home/ganesank/project/phytclust/phytclust/phytclust.py
+Function: run at line 230
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   230                                               def run(self, verbose=False):
+   231                                                   # print(f"self.k = {self.k}, self.max_k = {self.max_k}")  # Debug
+   232         1       2946.0   2946.0      0.0          start_time = time.time()
+   233         1       1023.0   1023.0      0.0          if self.max_k is None and self.k:
+   234                                                       self.clusters = self.tree_clust_backtrack(self.k, verbose=verbose)
+   235                                           
+   236         1        734.0    734.0      0.0          elif self.k is None:
+   237         1        719.0    719.0      0.0              if self.max_k is None or self.max_k == "max":
+   238                                                           self.max_k = self.num_terminals
+   239                                                           self.def_clusters(verbose)
+   240                                           
+   241         1       1394.0   1394.0      0.0              elif isinstance(self.max_k, int) and self.max_k > 0:
+   242         1        1e+11    1e+11    100.0                  self.def_clusters(verbose)
+   243                                           
+   244                                                       else:
+   245                                                           raise ValueError("invalid cluster number")
+   246                                                   else:
+   247                                                       raise ValueError("invalid cluster number. Please choose either k or max_k")
+   248                                           
+   249         1       2668.0   2668.0      0.0          end_time = time.time()
+   250         1       5203.0   5203.0      0.0          self._track_runtime("run", start_time, end_time)
+
+Total time: 4.37907 s
+File: /home/ganesank/project/phytclust/phytclust/phytclust.py
+Function: score_calc at line 296
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   296                                               def score_calc(self, plot=True, output_all=False):
+   297         1       3138.0   3138.0      0.0          start_time = time.time()
+   298         1        972.0    972.0      0.0          scores = []
+   299         1        679.0    679.0      0.0          num_list = []
+   300         1        346.0    346.0      0.0          den_list = []
+   301         1       1173.0   1173.0      0.0          if self.k is None:
+   302      3083    1287847.0    417.7      0.0              for cluster in self.clusters:
+   303      6164 4372656154.0 709386.1     99.9                  num, den, score = self.cluster_score(
+   304      3082     496661.0    161.1      0.0                      clusters=cluster, output_all=output_all
+   305                                                           )
+   306      3082    1937071.0    628.5      0.0                  scores.append(score)
+   307      3082    1024606.0    332.4      0.0                  num_list.append(num)
+   308      3082    1284422.0    416.7      0.0                  den_list.append(den)
+   309                                                   else:
+   310                                                       num, den, score = self.cluster_score(
+   311                                                           clusters=self.clusters, output_all=output_all
+   312                                                       )
+   313                                                       print(f"Single Cluster: {self.clusters}, Score: {score}")
+   314                                                       scores.append(score)
+   315                                                       num_list.append(num)
+   316                                                       den_list.append(den)
+   317                                           
+   318         1     141481.0 141481.0      0.0          self.scores = np.array(scores)
+   319         1     115546.0 115546.0      0.0          self.num = np.array(num_list)
+   320         1     108315.0 108315.0      0.0          self.den = np.array(den_list)
+   321                                           
+   322         1        388.0    388.0      0.0          if plot and self.k is None:
+   323                                                       plt.plot(range(1, len(self.scores) + 1), self.scores, "o-")
+   324                                                       plt.xlabel("No. of Clusters")
+   325                                                       plt.ylabel("Scores")
+   326                                                       plt.title("Scores for Different No. of Clusters")
+   327                                           
+   328                                                       ax = plt.gca()  
+   329                                                       ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+   330                                           
+   331                                                       plt.show()
+   332                                           
+   333         1       3029.0   3029.0      0.0          end_time = time.time()
+   334         1       5619.0   5619.0      0.0          self._track_runtime("score_calc", start_time, end_time)
+
