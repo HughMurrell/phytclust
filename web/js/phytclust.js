@@ -38,6 +38,7 @@
     this.treeRoot = parsed.root;
     this.tree = { root: this.treeRoot };
     this._dpReady = false;
+    this.numInternalNodes = TreeUtils.countInternalNodes(this.treeRoot);
     this.prepareTree();
     return this;
   };
@@ -88,6 +89,23 @@
     const cmap = PhytClustDP.backtrack(this, k);
     this.clusters[k] = cmap;
     return cmap;
+  };
+
+  /**
+   * Get the optimal DP cost (score) for exactly k clusters.
+   * Returns a number, or null if not available.
+   */
+  PhytClust.prototype.getOptimalScore = function (k) {
+    if (k == null || k < 1 || k > this.numTerminals) return null;
+    this._ensureDp();
+    const root = this.postorderNodes[this.postorderNodes.length - 1];
+    const rootId = this.nodeToId.get(root);
+    const row = this.dp_table[rootId];
+    if (row == null) return null;
+    const idx = k - 1;
+    if (idx < 0 || idx >= row.length) return null;
+    const val = row[idx];
+    return typeof val === 'number' && isFinite(val) ? val : null;
   };
 
   /**

@@ -146,6 +146,49 @@
       color: var(--muted);
       margin-top: 0.5rem;
     }
+    .score-box {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .score-label {
+      color: var(--muted);
+      margin-right: 0.5rem;
+    }
+    .score-value {
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .validation-panel {
+      margin-top: 1.25rem;
+    }
+    .validation-title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 0 0 0.5rem 0;
+    }
+    .validation-hint {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      margin: 0 0 0.5rem 0;
+    }
+    .validation-container {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem;
+      min-height: 180px;
+    }
+    .validation-container svg {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -176,10 +219,20 @@
         </div>
         <div style="align-self: flex-end;">
           <button type="button" id="runBtn" disabled>Run clustering</button>
+          <button type="button" id="allkBtn" disabled>All k</button>
         </div>
         <p id="runStatus" class="status"></p>
       </div>
       <p id="treeMeta" class="meta"></p>
+      <div id="scoreBox" class="score-box" aria-live="polite">
+        <span class="score-label">Optimal score:</span>
+        <span id="scoreValue" class="score-value">—</span>
+      </div>
+      <div id="validationScorePanel" class="validation-panel">
+        <h3 class="validation-title">Validation score vs k</h3>
+        <p id="validationScoreHint" class="validation-hint">Click “All k” to compute and show the validation score curve.</p>
+        <div id="validationScoreContainer" class="validation-container"></div>
+      </div>
     </div>
 
     <div class="panel">
@@ -193,6 +246,7 @@
   <script src="js/tree-utils.js"></script>
   <script src="js/dp.js"></script>
   <script src="js/phytclust.js"></script>
+  <script src="js/scoring.js"></script>
   <script src="js/viz.js"></script>
   <script src="js/app.js"></script>
 </body>

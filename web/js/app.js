@@ -13,8 +13,12 @@
   const fileStatus = document.getElementById('fileStatus');
   const kInput = document.getElementById('k');
   const runBtn = document.getElementById('runBtn');
+  const allkBtn = document.getElementById('allkBtn');
   const runStatus = document.getElementById('runStatus');
   const treeMeta = document.getElementById('treeMeta');
+  const scoreValueEl = document.getElementById('scoreValue');
+  const validationScoreHint = document.getElementById('validationScoreHint');
+  const validationScoreContainer = document.getElementById('validationScoreContainer');
   const treeContainer = document.getElementById('treeContainer');
   const legendEl = document.getElementById('legend');
 
@@ -29,17 +33,45 @@
       pc = new PhytClust({ min_cluster_size: 1 });
       pc.loadNewick(text);
       currentNewick = text;
-      setStatus(fileStatus, 'Tree loaded: ' + pc.numTerminals + ' tips', 'ok');
+      const numInternal = pc.numInternalNodes != null ? pc.numInternalNodes : 0;
+      setStatus(fileStatus, 'Tree loaded: ' + pc.numTerminals + ' tips, ' + numInternal + ' internal nodes', 'ok');
       runBtn.disabled = false;
-      const maxK = pc.numTerminals;
+      allkBtn.disabled = false;
+      const maxK = numInternal > 0 ? Math.min(pc.numTerminals, Math.ceil(Math.sqrt(numInternal))) : pc.numTerminals;
       kInput.max = maxK;
       if (parseInt(kInput.value, 10) > maxK) kInput.value = maxK;
-      treeMeta.textContent = 'Tips: ' + pc.numTerminals + ' — max k: ' + maxK;
+      treeMeta.textContent = 'Tips: ' + pc.numTerminals + ', Internal nodes: ' + numInternal + ' — max k: ' + maxK;
       runClustering();
     } catch (e) {
       setStatus(fileStatus, 'Parse error: ' + e.message, 'err');
       runBtn.disabled = true;
+      allkBtn.disabled = true;
       treeContainer.innerHTML = '';
+      legendEl.innerHTML = '';
+    }
+  }
+
+  function runAllK() {
+    if (!pc) return;
+    setStatus(runStatus, 'Searching for best k…', '');
+    try {
+      const numInt = pc.numInternalNodes != null ? pc.numInternalNodes : 0;
+      const m = numInt > 0 ? Math.min(pc.numTerminals, Math.ceil(Math.sqrt(numInt))) : pc.numTerminals;
+      pc.max_k = Math.max(1, m);
+      pc._dpReady = false;
+      pc._ensureDp();
+      const bestK = PhytClustScoring.findBestK(pc, { min_k: 2, lambda_weight: 0.7 });
+      kInput.value = bestK;
+      setStatus(runStatus, 'Best k: ' + bestK, 'ok');
+      const clusterMap = pc.getClusters(bestK);
+      const score = pc.getOptimalScore(bestK);
+      if (scoreValueEl) scoreValueEl.textContent = score != null ? formatScore(score) : '—';
+      drawTreeAndLegend(clusterMap, bestK);
+      updateValidationScorePlot(bestK);
+    } catch (e) {
+      setStatus(runStatus, e.message, 'err');
+      if (scoreValueEl) scoreValueEl.textContent = '—';
+      treeContainer.innerHTML = '<p class="status err">' + e.message + '</p>';
       legendEl.innerHTML = '';
     }
   }
@@ -85,15 +117,47 @@
     try {
       const clusterMap = pc.getClusters(k);
       setStatus(runStatus, 'Found ' + k + ' clusters', 'ok');
+      const score = pc.getOptimalScore(k);
+      if (scoreValueEl) {
+        scoreValueEl.textContent = score != null ? formatScore(score) : '—';
+      }
       drawTreeAndLegend(clusterMap, k);
+      updateValidationScorePlot(k);
     } catch (e) {
       setStatus(runStatus, e.message, 'err');
+      if (scoreValueEl) scoreValueEl.textContent = '—';
       treeContainer.innerHTML = '<p class="status err">' + e.message + '</p>';
       legendEl.innerHTML = '';
     }
   }
 
+  function formatScore(s) {
+    if (typeof s !== 'number' || !isFinite(s)) return '—';
+    if (s === 0) return '0';
+    if (Math.abs(s) >= 1e6 || (Math.abs(s) < 0.0001 && s !== 0)) return s.toExponential(4);
+    return Number(s.toPrecision(6)).toString();
+  }
+
+  function updateValidationScorePlot(highlightedK) {
+    if (!validationScoreContainer) return;
+    if (!pc || !pc.scores || pc.scores.length === 0) {
+      if (validationScoreHint) validationScoreHint.style.display = '';
+      validationScoreContainer.innerHTML = '';
+      return;
+    }
+    if (validationScoreHint) validationScoreHint.style.display = 'none';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    validationScoreContainer.innerHTML = '';
+    validationScoreContainer.appendChild(svg);
+    PhytClustViz.drawValidationScorePlot(svg, pc.scores, highlightedK != null ? highlightedK : parseInt(kInput.value, 10), {
+      padding: 44,
+      width: Math.max(400, (validationScoreContainer.clientWidth || 560) - 24),
+      height: 220
+    });
+  }
+
   runBtn.addEventListener('click', runClustering);
+  if (allkBtn) allkBtn.addEventListener('click', runAllK);
   kInput.addEventListener('change', function () {
     if (pc) runClustering();
   });

@@ -253,9 +253,136 @@
     svgElement.appendChild(g);
   }
 
+  /**
+   * Plot validation scores vs k. scores[i] is the combined validation score for k = i + 1.
+   * highlightedK: optional k to highlight (e.g. current or best k).
+   */
+  function drawValidationScorePlot(svgElement, scores, highlightedK, opts) {
+    opts = opts || {};
+    const padding = opts.padding != null ? opts.padding : 44;
+    const width = opts.width != null ? opts.width : 560;
+    const height = opts.height != null ? opts.height : 220;
+
+    if (!scores || scores.length === 0) {
+      svgElement.setAttribute('width', width);
+      svgElement.setAttribute('height', height);
+      svgElement.innerHTML = '';
+      return;
+    }
+
+    const values = scores.map(function (v) {
+      return typeof v === 'number' && isFinite(v) ? Math.max(0, v) : 0;
+    });
+    const maxVal = Math.max.apply(null, values);
+    const minVal = Math.min.apply(null, values);
+    const range = maxVal - minVal || 1;
+    const innerW = width - 2 * padding;
+    const innerH = height - 2 * padding;
+
+    svgElement.setAttribute('width', width);
+    svgElement.setAttribute('height', height);
+    svgElement.innerHTML = '';
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+    const n = scores.length;
+    const pathD = [];
+    for (let i = 0; i < n; i++) {
+      const k = i + 1;
+      const x = padding + (n > 1 ? (i / (n - 1)) * innerW : 0);
+      const y = padding + innerH - ((values[i] - minVal) / range) * innerH;
+      pathD.push((i === 0 ? 'M' : 'L') + x + ',' + y);
+    }
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathD.join(' '));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#1f77b4');
+    path.setAttribute('stroke-width', '2');
+    g.appendChild(path);
+
+    for (let i = 0; i < n; i++) {
+      const k = i + 1;
+      const x = padding + (n > 1 ? (i / (n - 1)) * innerW : 0);
+      const y = padding + innerH - ((values[i] - minVal) / range) * innerH;
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', String(x));
+      circle.setAttribute('cy', String(y));
+      circle.setAttribute('r', k === highlightedK ? 5 : 2.5);
+      circle.setAttribute('fill', k === highlightedK ? '#d62728' : '#1f77b4');
+      g.appendChild(circle);
+    }
+
+    const axisY = padding + innerH;
+    const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    axisLine.setAttribute('x1', String(padding));
+    axisLine.setAttribute('y1', String(axisY));
+    axisLine.setAttribute('x2', String(padding + innerW));
+    axisLine.setAttribute('y2', String(axisY));
+    axisLine.setAttribute('stroke', 'currentColor');
+    axisLine.setAttribute('stroke-width', '1');
+    g.appendChild(axisLine);
+
+    const tickSize = 4;
+    const tickLabelDy = 14;
+    const maxTicks = 12;
+    const tickK = n <= maxTicks
+      ? (function () { const out = []; for (let j = 1; j <= n; j++) out.push(j); return out; })()
+      : (function () {
+          const out = [1];
+          for (let t = 1; t < maxTicks - 1; t++) {
+            const k = Math.round(1 + (t / (maxTicks - 1)) * (n - 1));
+            if (k > 1 && k < n) out.push(k);
+          }
+          if (n > 1) out.push(n);
+          return out;
+        })();
+
+    tickK.forEach(function (k) {
+      const i = k - 1;
+      const x = padding + (n > 1 ? (i / (n - 1)) * innerW : 0);
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      tick.setAttribute('x1', String(x));
+      tick.setAttribute('y1', String(axisY));
+      tick.setAttribute('x2', String(x));
+      tick.setAttribute('y2', String(axisY + tickSize));
+      tick.setAttribute('stroke', 'currentColor');
+      tick.setAttribute('stroke-width', '1');
+      g.appendChild(tick);
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', String(x));
+      label.setAttribute('y', String(axisY + tickSize + tickLabelDy));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('fill', 'currentColor');
+      label.textContent = String(k);
+      g.appendChild(label);
+    });
+
+    const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xLabel.setAttribute('x', width / 2);
+    xLabel.setAttribute('y', height - 4);
+    xLabel.setAttribute('text-anchor', 'middle');
+    xLabel.setAttribute('font-size', '11');
+    xLabel.setAttribute('fill', 'currentColor');
+    xLabel.textContent = 'k (number of clusters)';
+    g.appendChild(xLabel);
+
+    const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yLabel.setAttribute('x', 12);
+    yLabel.setAttribute('y', padding - 4);
+    yLabel.setAttribute('text-anchor', 'start');
+    yLabel.setAttribute('font-size', '11');
+    yLabel.setAttribute('fill', 'currentColor');
+    yLabel.textContent = 'Validation score';
+    g.appendChild(yLabel);
+
+    svgElement.appendChild(g);
+  }
+
   global.PhytClustViz = {
     drawTree: drawTree,
     drawScorePlot: drawScorePlot,
+    drawValidationScorePlot: drawValidationScorePlot,
     DEFAULT_PALETTE: DEFAULT_PALETTE,
     getXPositions: getXPositions,
     getYPositions: getYPositions

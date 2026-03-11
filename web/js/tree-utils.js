@@ -11,6 +11,22 @@
   }
 
   /**
+   * Count internal nodes in the tree as loaded (before polytomy resolution).
+   * Internal = has at least one child. Polytomous trees can have fewer than n-1 internal nodes.
+   */
+  function countInternalNodes(root) {
+    let count = 0;
+    function visit(node) {
+      if (node.clades && node.clades.length > 0) {
+        count++;
+        node.clades.forEach(visit);
+      }
+    }
+    visit(root);
+    return count;
+  }
+
+  /**
    * Collect all clades in postorder (children before parent).
    */
   function findCladesPostorder(root) {
@@ -149,6 +165,7 @@
 
   global.TreeUtils = {
     isTerminal: isTerminal,
+    countInternalNodes: countInternalNodes,
     findCladesPostorder: findCladesPostorder,
     getTerminals: getTerminals,
     ensureBranchLengths: ensureBranchLengths,
