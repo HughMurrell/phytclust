@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhytClust — Browser</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79b8ff;
+      --success: #3fb950;
+      --error: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 0.25rem 0;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .panel h2 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 0 0 0.75rem 0;
+    }
+    label {
+      display: block;
+      font-size: 0.8125rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    input[type="file"] {
+      font-size: 0.875rem;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    input[type="number"] {
+      width: 80px;
+      font-size: 0.875rem;
+      padding: 0.4rem 0.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+    }
+    button {
+      font-family: inherit;
+      font-size: 0.875rem;
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .row:last-child { margin-bottom: 0; }
+    .status {
+      font-size: 0.8125rem;
+      color: var(--muted);
+    }
+    .status.ok { color: var(--success); }
+    .status.err { color: var(--error); }
+    #treeContainer {
+      overflow: auto;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 320px;
+    }
+    #treeContainer svg {
+      display: block;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .legend i {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+    .meta {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PhytClust</h1>
+    <p class="subtitle">Monophyletic clustering of phylogenetic trees — run in the browser</p>
+
+    <div class="panel">
+      <h2>1. Load tree</h2>
+      <div class="row">
+        <div>
+          <label for="file">Newick file (.nwk, .newick, .txt)</label>
+          <input type="file" id="file" accept=".nwk,.newick,.txt,text/plain">
+        </div>
+        <div style="align-self: flex-end;">
+          <button type="button" id="sampleBtn">Load sample tree</button>
+        </div>
+        <p id="fileStatus" class="status"></p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>2. Cluster</h2>
+      <div class="row">
+        <div>
+          <label for="k">Number of clusters (k)</label>
+          <input type="number" id="k" min="1" value="3">
+        </div>
+        <div style="align-self: flex-end;">
+          <button type="button" id="runBtn" disabled>Run clustering</button>
+        </div>
+        <p id="runStatus" class="status"></p>
+      </div>
+      <p id="treeMeta" class="meta"></p>
+    </div>
+
+    <div class="panel">
+      <h2>3. Tree &amp; clusters</h2>
+      <div id="treeContainer"></div>
+      <div id="legend" class="legend"></div>
+    </div>
+  </div>
+
+  <script src="js/newick.js"></script>
+  <script src="js/tree-utils.js"></script>
+  <script src="js/dp.js"></script>
+  <script src="js/phytclust.js"></script>
+  <script src="js/viz.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
