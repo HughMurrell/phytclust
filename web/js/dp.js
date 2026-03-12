@@ -118,6 +118,10 @@
         backptr1[k] = k - 1 - bestI;
       }
 
+      if (node.comment === 'DUMMY_NODE') {
+        for (let i = 1; i <= nStates; i++) dpArray[i] = INF;
+      }
+
       dpTable[ni] = dpArray;
       backptr[ni] = [backptr0, backptr1];
     }
@@ -128,7 +132,30 @@
   }
 
   /**
-   * Backtrack from root to get cluster assignment: Map<leafNode, clusterId (0..k-1)>.
+   * Algorithm: optimal clustering for a given k from the DP table
+   * ---------------------------------------------------------------
+   * (1) DP table (filled by computeDpTable, postorder over nodes):
+   *     dp_table[nodeId][j] = minimum cost to partition the subtree at this node
+   *     into (j+1) clusters (j = 0 means 1 cluster, j = 1 means 2 clusters, ...).
+   *     Cost = sum over clusters of (branch lengths × leaf count) in that cluster.
+   *
+   * (2) Backpointers: backptr[nodeId][0][j] = leftK, backptr[nodeId][1][j] = rightK,
+   *     where the optimal (j+1)-cluster partition at this node is achieved by
+   *     left subtree having (leftK+1) clusters and right subtree having (rightK+1)
+   *     clusters, with leftK + rightK + 1 = j (one cluster "used" at this node).
+   *
+   * (3) Backtrack for target k:
+   *     - Start at root with clusterIndex = k - 1 (we want k clusters).
+   *     - Use a stack: (nodeId, cIndex). cIndex = index into dp_row (cIndex+1 clusters).
+   *     - If cIndex === 0: the subtree forms a single cluster; assign all its leaves
+   *       to currentClusterId, then increment currentClusterId.
+   *     - Else: read leftK = backptr[nodeId][0][cIndex], rightK = backptr[nodeId][1][cIndex].
+   *       Push (rightChildId, rightK) and (leftChildId, leftK) onto the stack so we
+   *       process the left child first (then right), each responsible for (leftK+1)
+   *       and (rightK+1) clusters.
+   *     - When the stack is empty, every leaf has been assigned to a cluster 0..k-1.
+   *
+   * (4) Result: Map<leafNode, clusterId> giving the optimal k-way monophyletic partition.
    */
   function backtrack(pc, k) {
     if (k == null || k <= 0) throw new Error('k must be a positive integer');

@@ -121,6 +121,7 @@
       if (scoreValueEl) {
         scoreValueEl.textContent = score != null ? formatScore(score) : '—';
       }
+      logDpTable(pc, k);
       drawTreeAndLegend(clusterMap, k);
       updateValidationScorePlot(k);
     } catch (e) {
@@ -129,6 +130,29 @@
       treeContainer.innerHTML = '<p class="status err">' + e.message + '</p>';
       legendEl.innerHTML = '';
     }
+  }
+
+  function logDpTable(pc, k) {
+    if (!pc.dp_table || !pc.postorderNodes || !pc.numLeavesPerNode) return;
+    const rows = [];
+    for (let i = 0; i < pc.postorderNodes.length; i++) {
+      const node = pc.postorderNodes[i];
+      const nLeaves = pc.numLeavesPerNode.get(node);
+      const dpRow = pc.dp_table[i];
+      const name = node.name != null ? node.name : null;
+      rows.push({
+        nodeIndex: i,
+        name: name,
+        nLeaves: nLeaves,
+        dpRow: dpRow ? Array.from(dpRow) : null
+      });
+    }
+    console.log('PhytClust DP table (k=' + k + ')', {
+      numNodes: pc.postorderNodes.length,
+      k: k,
+      optimalCost: pc.getOptimalScore(k),
+      rows: rows
+    });
   }
 
   function formatScore(s) {
